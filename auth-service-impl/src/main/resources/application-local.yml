@@ -1,0 +1,10 @@
+spring:
+
+  datasource:
+    url: 'jdbc:postgresql://localhost:5432/auth-service-db'
+    username: 'postgres'
+    password: 'postgres'
+
+  docker:
+    compose:
+      enabled: 'false'
