@@ -3,7 +3,20 @@ spring:
     name: 'auth-service'
 
   profiles:
-    active: 'local'
+    active: "${APPLICATION_PROFILE}"
+
+  datasource:
+    url: "${DB_URL}"
+    username: "${DB_USER}"
+    password: "${DB_PASSWORD}"
+
+  jpa:
+    hibernate:
+      ddl-auto: 'validate'
+    show-sql: 'true'
+    properties:
+      hibernate:
+        default_schema: 'app'
 
   liquibase:
     enabled: 'true'
@@ -12,3 +25,12 @@ spring:
 
 server:
   port: '9000'
+
+application:
+  security:
+    enabled: 'true'
+    secretKey: "${TOKEN_SECRET}"
+    issuer: 'InnowiseGroup'
+    ttl:
+      access: '15m'
+      refresh: '15d'
