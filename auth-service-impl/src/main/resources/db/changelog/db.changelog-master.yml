@@ -4,3 +4,8 @@ databaseChangeLog:
       file: changeset/db.changelog-20250901_001_create-auth-users-table.sql
       relativeToChangelogFile: true
       logicalFilePath: create-auth-users-table
+
+  - include:
+      file: changeset/db.changelog-20250903_002_create-refresh-tokens-table.sql
+      relativeToChangelogFile: true
+      logicalFilePath: create-refresh-tokens-table
