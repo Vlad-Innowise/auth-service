@@ -34,7 +34,7 @@ import java.util.UUID;
 @Slf4j
 public class TokenServiceImpl implements TokenService {
 
-    private static final String SECURITY_ROLE_PREFIX = "ROLE_%s";
+    private static final String SECURITY_ROLE_PREFIX = "ROLE_";
     private final JwtParser jwtParser;
     private final JwtSecurityProperties jwtSecurityProperties;
     private final SecretKey secretKey;
@@ -67,7 +67,7 @@ public class TokenServiceImpl implements TokenService {
     private ClaimsDto prepareAndGetClaimsForToken(AuthUser user, LocalDateTime now, TokenType type) {
         Map<String, Object> customClaims =
                 Map.of(JwtConstants.JWT_EMAIL_CLAIM_NAME, user.getEmail(),
-                       JwtConstants.JWT_ROLE_CLAIM_NAME, List.of(SECURITY_ROLE_PREFIX.formatted(user.getRole())),
+                       JwtConstants.JWT_ROLE_CLAIM_NAME, List.of(SECURITY_ROLE_PREFIX + user.getRole()),
                        JwtConstants.JWT_TOKEN_TYPE_CLAIM_NAME, type.getType());
         Instant expiresAt = getExpirationDateByTokenType(now, type).toInstant(ZoneOffset.UTC);
         return ClaimsDto.builder()
