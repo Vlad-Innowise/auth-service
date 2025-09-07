@@ -99,6 +99,12 @@ public class TokenServiceImpl implements TokenService, RefreshTokenCleanupServic
         tokenRepository.delete(token);
     }
 
+    @Override
+    public Optional<RefreshToken> getRefreshTokenByUserId(Long userId) {
+        log.info("Retrieving refresh token userId: {}", userId);
+        return tokenRepository.findTokenByAuthUserId(userId);
+    }
+
     private Optional<RefreshToken> findRefreshTokenByTokenHash(String hashedToken) {
         log.info("Retrieving refresh token by token hash in HEX: {}", hashedToken);
         return tokenRepository.findTokenByTokenHash(hashedToken);

@@ -20,4 +20,5 @@ public interface TokenService {
 
     void delete(RefreshToken token);
 
+    Optional<RefreshToken> getRefreshTokenByUserId(Long userId);
 }

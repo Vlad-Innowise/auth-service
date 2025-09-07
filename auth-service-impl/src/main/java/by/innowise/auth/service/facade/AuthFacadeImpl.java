@@ -1,5 +1,6 @@
 package by.innowise.auth.service.facade;
 
+import by.innowise.auth.dto.AuthDetails;
 import by.innowise.auth.dto.UserCreateDto;
 import by.innowise.auth.dto.token.TokenRequestDto;
 import by.innowise.auth.dto.token.TokenResponseDto;
@@ -12,7 +13,6 @@ import by.innowise.auth.service.UserService;
 import by.innowise.auth.service.dto.ParsedTokenDto;
 import by.innowise.auth.service.dto.TokenType;
 import by.innowise.auth.util.TokenHasher;
-import by.innowise.common.library.exception.UserNotFoundException;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,47 +41,30 @@ public class AuthFacadeImpl implements AuthFacade {
     @Transactional
     @Override
     public void validate(TokenRequestDto tokenRequest) {
-        validateJwt(tokenRequest);
-        ParsedTokenDto parsedTokenDto = parseToken(tokenRequest);
-        validateTokenConsistency(tokenRequest, parsedTokenDto);
+        ParsedTokenDto parsedTokenDto = validateAndParse(tokenRequest);
+        getValidatedUser(tokenRequest, parsedTokenDto);
     }
 
     @Transactional
     @Override
     public TokenResponseDto refresh(TokenRequestDto tokenRequest) {
-        validateJwt(tokenRequest);
-        ParsedTokenDto parsedTokenDto = parseToken(tokenRequest);
+        ParsedTokenDto parsedTokenDto = validateAndParse(tokenRequest);
         checkIfRefreshToken(parsedTokenDto);
-        validateTokenConsistency(tokenRequest, parsedTokenDto);
-        return generateUpdatedTokens(tokenRequest, parsedTokenDto);
+        AuthUser validatedUser = getValidatedUser(tokenRequest, parsedTokenDto);
+        return refreshTokenByTokenHash(validatedUser, convertTokenToHex(tokenRequest));
     }
 
-    private void checkIfRefreshToken(ParsedTokenDto parsedTokenDto) {
-        if (isNotRefreshToken(parsedTokenDto)) {
-            throw new TokenValidationException(
-                    "Token type [%s] can't be refreshed, cause it's not a REFRESH token".formatted(
-                            parsedTokenDto.getTokenType().getType()), HttpStatus.CONFLICT);
-        }
+    @Transactional
+    @Override
+    public TokenResponseDto login(AuthDetails authDetails) {
+        AuthUser authenticated = userService.authenticate(authDetails);
+        log.info("Retrieved a user from user service: {}", authenticated);
+        return refreshTokenByUser(authenticated);
     }
 
-    private TokenResponseDto generateUpdatedTokens(TokenRequestDto tokenRequest, ParsedTokenDto parsedTokenDto) {
-        return userService.getActiveById(parsedTokenDto.getUserId())
-                          .map(u -> getRefreshedTokens(tokenRequest, u))
-                          .orElseThrow(() -> new IllegalStateException(
-                                  "User has been illegally removed during token refresh"));
-    }
-
-    private TokenResponseDto getRefreshedTokens(TokenRequestDto tokenRequest, AuthUser user) {
-        return tokenService.getRefreshTokenByTokenHash(convertTokenToHex(tokenRequest))
-                           .map(t -> clearAndGenerateNewTokens(user, t))
-                           .orElseGet(() -> tokenService.generate(user));
-    }
-
-    private TokenResponseDto clearAndGenerateNewTokens(AuthUser user, RefreshToken token) {
-        log.info("Refresh token found: {}", token);
-        tokenService.delete(token);
-        log.info("Refresh token was pre-deleted: {}", token.getId());
-        return tokenService.generate(user);
+    private ParsedTokenDto validateAndParse(TokenRequestDto tokenRequest) {
+        validateJwt(tokenRequest);
+        return parseToken(tokenRequest);
     }
 
     private void validateJwt(TokenRequestDto tokenRequest) {
@@ -95,29 +78,66 @@ public class AuthFacadeImpl implements AuthFacade {
         return parsedTokenDto;
     }
 
-    private void validateTokenConsistency(TokenRequestDto tokenRequest, ParsedTokenDto parsedTokenDto) {
-        userService.getActiveById(parsedTokenDto.getUserId())
-                   .ifPresentOrElse(u -> validateClaimsOrClearRefreshTokenAndThrow(u, parsedTokenDto, tokenRequest),
-                                    () -> clearRefreshTokenAndThrow(tokenRequest, parsedTokenDto));
+    private AuthUser getValidatedUser(TokenRequestDto tokenRequest, ParsedTokenDto parsedTokenDto) {
+        return userService.getActiveById(parsedTokenDto.getUserId())
+                          .map(u -> {
+                              ensureClaimsAreConsistent(u, parsedTokenDto, tokenRequest);
+                              return u;
+                          })
+                          .orElseThrow(() -> {
+                              clearRefreshToken(tokenRequest, parsedTokenDto);
+                              return new TokenValidationException("The subject user is not found or deactivated",
+                                                                  HttpStatus.UNAUTHORIZED);
+                          });
     }
 
-    private void clearRefreshTokenAndThrow(TokenRequestDto tokenRequest, ParsedTokenDto parsedTokenDto) {
-        log.info("Auth user with id: [{}] is not found", parsedTokenDto.getUserId());
-        clearRefreshTokenIfStored(tokenRequest, parsedTokenDto);
-        throw new UserNotFoundException("The subject user is not found or deactivated", HttpStatus.UNAUTHORIZED);
+    private void checkIfRefreshToken(ParsedTokenDto parsedTokenDto) {
+        if (isNotRefreshToken(parsedTokenDto)) {
+            throw new TokenValidationException(
+                    "Token type [%s] can't be refreshed, cause it's not a REFRESH token".formatted(
+                            parsedTokenDto.getTokenType().getType()), HttpStatus.CONFLICT);
+        }
     }
 
-    private void validateClaimsOrClearRefreshTokenAndThrow(@NotNull AuthUser user,
-                                                           ParsedTokenDto parsedTokenDto,
-                                                           TokenRequestDto tokenRequest) {
+    private TokenResponseDto refreshTokenByTokenHash(AuthUser user, String hashedToken) {
+        return tokenService.getRefreshTokenByTokenHash(hashedToken)
+                           .map(t -> replaceRefreshToken(user, t))
+                           .orElseGet(() -> tokenService.generate(user));
+    }
+
+    private TokenResponseDto refreshTokenByUser(AuthUser user) {
+        return tokenService.getRefreshTokenByUserId(user.getId())
+                           .map(t -> replaceRefreshToken(user, t))
+                           .orElseGet(() -> tokenService.generate(user));
+    }
+
+    private TokenResponseDto replaceRefreshToken(AuthUser user, RefreshToken token) {
+        log.info("Refresh token found: {}", token);
+        tokenService.delete(token);
+        log.info("Refresh token was pre-deleted: {}", token.getId());
+        return tokenService.generate(user);
+    }
+
+    private void ensureClaimsAreConsistent(@NotNull AuthUser user,
+                                           ParsedTokenDto parsedTokenDto,
+                                           TokenRequestDto tokenRequest) {
         log.info("Retrieved auth user: {}", user);
         log.info("Checking if token claims are consistent with user state in db");
         if (tokenClaimsIsNotConsistent(user, parsedTokenDto)) {
             log.info("Token claims and user state are not consistent! User: {}, parsedClaims: {}", user,
                      parsedTokenDto);
-            clearRefreshTokenIfStored(tokenRequest, parsedTokenDto);
-            throw new TokenValidationException("Token contains insufficient data", HttpStatus.UNAUTHORIZED);
+            handleInconsistentClaims(parsedTokenDto, tokenRequest);
         }
+    }
+
+    private void handleInconsistentClaims(ParsedTokenDto parsedTokenDto, TokenRequestDto tokenRequest) {
+        clearRefreshTokenIfStored(tokenRequest, parsedTokenDto);
+        throw new TokenValidationException("Token contains insufficient data", HttpStatus.UNAUTHORIZED);
+    }
+
+    private void clearRefreshToken(TokenRequestDto tokenRequest, ParsedTokenDto parsedTokenDto) {
+        log.info("Auth user with id: [{}] is not found", parsedTokenDto.getUserId());
+        clearRefreshTokenIfStored(tokenRequest, parsedTokenDto);
     }
 
     private boolean tokenClaimsIsNotConsistent(AuthUser user, ParsedTokenDto parsedTokenDto) {

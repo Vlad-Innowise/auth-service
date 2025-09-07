@@ -1,5 +1,6 @@
 package by.innowise.auth.service;
 
+import by.innowise.auth.dto.AuthDetails;
 import by.innowise.auth.dto.UserCreateDto;
 import by.innowise.auth.repository.entity.AuthUser;
 
@@ -12,4 +13,6 @@ public interface UserService {
     AuthUser create(UserCreateDto userCreateDto);
 
     Optional<AuthUser> getActiveById(Long userId);
+
+    AuthUser authenticate(AuthDetails authDetails);
 }
