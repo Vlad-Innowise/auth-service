@@ -45,7 +45,7 @@ public class TokenServiceImpl implements TokenService {
     @Override
     public TokenResponseDto generate(AuthUser user) {
         log.info("Generating access and refresh tokens");
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         String accessToken = generateToken(user, now, TokenType.ACCESS);
         String refreshToken = generateToken(user, now, TokenType.REFRESH);
         log.debug("Access: {} and refresh: {} tokens were generated", accessToken, refreshToken);
