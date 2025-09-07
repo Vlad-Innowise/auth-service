@@ -12,6 +12,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -37,5 +39,11 @@ public class UserServiceImpl implements UserService {
         );
         log.info("Invoking user repository to save a user: {}", toSave);
         return userRepository.saveAndFlush(toSave);
+    }
+
+    @Override
+    public Optional<AuthUser> getActiveById(Long userId) {
+        log.info("Trying to retrieve active user by id: {}", userId);
+        return userRepository.findByIdAndStatus(userId, UserStatus.ACTIVATED);
     }
 }
