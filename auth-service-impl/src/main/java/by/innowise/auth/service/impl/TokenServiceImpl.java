@@ -50,7 +50,10 @@ public class TokenServiceImpl implements TokenService {
         String refreshToken = generateToken(user, now, TokenType.REFRESH);
         log.debug("Access: {} and refresh: {} tokens were generated", accessToken, refreshToken);
         RefreshToken toSave = mapper.toEntity(
-                getRefreshTokenCreateDto(user, refreshToken, getExpirationDateByTokenType(now, TokenType.REFRESH)));
+                getRefreshTokenCreateDto(user,
+                                         TokenHasher.hashSha256(refreshToken),
+                                         getExpirationDateByTokenType(now, TokenType.REFRESH))
+        );
         log.info("Saving refresh token to db: {}", toSave);
         tokenRepository.saveAndFlush(toSave);
         return new TokenResponseDto(accessToken, refreshToken);
@@ -91,10 +94,10 @@ public class TokenServiceImpl implements TokenService {
                    .compact();
     }
 
-    private RefreshTokenCreateDto getRefreshTokenCreateDto(AuthUser user, String refreshToken,
+    private RefreshTokenCreateDto getRefreshTokenCreateDto(AuthUser user, String hashedRefreshToken,
                                                            LocalDateTime expiresAt) {
         return new RefreshTokenCreateDto(UUID.randomUUID(),
-                                         TokenHasher.hashSha256(refreshToken),
+                                         hashedRefreshToken,
                                          expiresAt,
                                          user);
     }
