@@ -1,7 +1,7 @@
 package by.innowise.auth.dto;
 
 import by.innowise.auth.validation.api.EmailAvailable;
-import by.innowise.auth.validation.api.EnumValidator;
+import by.innowise.common.library.validation.EnumValidator;
 import by.innowise.internship.security.dto.Role;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
