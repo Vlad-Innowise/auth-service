@@ -21,6 +21,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <testcontainers.version>1.21.3</testcontainers.version>
         <common-security-starter.version>1.1.3</common-security-starter.version>
+        <common-lib.version>1.0.0</common-lib.version>
     </properties>
 
     <modules>
@@ -31,6 +32,10 @@
         <repository>
             <id>innowise-common</id>
             <url>https://maven.pkg.github.com/Vlad-Innowise/common-security-starter</url>
+        </repository>
+        <repository>
+            <id>innowise-common</id>
+            <url>https://maven.pkg.github.com/Vlad-Innowise/common-lib</url>
         </repository>
     </repositories>
 
@@ -72,6 +77,11 @@
                 <groupId>by.innowise.internship</groupId>
                 <artifactId>common-security-starter</artifactId>
                 <version>${common-security-starter.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>by.innowise.internship</groupId>
+                <artifactId>common-lib</artifactId>
+                <version>${common-lib.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
