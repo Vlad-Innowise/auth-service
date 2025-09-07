@@ -14,6 +14,7 @@ public class TokenHasher {
     private static final String SHA_256_ALGORITHM = "SHA-256";
 
     public static String hashSha256(String token) {
+        log.info("Hashing token to HEX using {} algorithm", SHA_256_ALGORITHM);
         try {
             MessageDigest messageDigest = MessageDigest.getInstance(SHA_256_ALGORITHM);
             byte[] hashedToken = messageDigest.digest(token.getBytes());
