@@ -93,6 +93,12 @@ public class TokenServiceImpl implements TokenService, RefreshTokenCleanupServic
         return findRefreshTokenByTokenHash(hashedToken);
     }
 
+    @Override
+    public void delete(RefreshToken token) {
+        log.info("Requested to delete a token: {}", token.getId());
+        tokenRepository.delete(token);
+    }
+
     private Optional<RefreshToken> findRefreshTokenByTokenHash(String hashedToken) {
         log.info("Retrieving refresh token by token hash in HEX: {}", hashedToken);
         return tokenRepository.findTokenByTokenHash(hashedToken);

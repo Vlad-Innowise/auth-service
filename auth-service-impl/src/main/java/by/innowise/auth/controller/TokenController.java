@@ -1,6 +1,7 @@
 package by.innowise.auth.controller;
 
 import by.innowise.auth.dto.token.TokenRequestDto;
+import by.innowise.auth.dto.token.TokenResponseDto;
 import by.innowise.auth.service.facade.AuthFacade;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,14 @@ public class TokenController {
         log.info("Token validated successfully");
         return ResponseEntity.ok()
                              .build();
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<TokenResponseDto> refresh(@RequestBody @Valid TokenRequestDto tokenRequest) {
+        log.info("Requested to refresh token: {}", tokenRequest.token());
+        TokenResponseDto generatedTokens = authFacade.refresh(tokenRequest);
+        log.info("Tokens successfully refreshed: {}", generatedTokens);
+        return ResponseEntity.ok(generatedTokens);
     }
 
 }

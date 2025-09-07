@@ -18,4 +18,6 @@ public interface TokenService {
 
     Optional<RefreshToken> getRefreshTokenByTokenHash(String hashedToken);
 
+    void delete(RefreshToken token);
+
 }

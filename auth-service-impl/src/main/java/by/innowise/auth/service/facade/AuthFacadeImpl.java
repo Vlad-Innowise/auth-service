@@ -5,6 +5,7 @@ import by.innowise.auth.dto.token.TokenRequestDto;
 import by.innowise.auth.dto.token.TokenResponseDto;
 import by.innowise.auth.exception.TokenValidationException;
 import by.innowise.auth.repository.entity.AuthUser;
+import by.innowise.auth.repository.entity.RefreshToken;
 import by.innowise.auth.service.RefreshTokenCleanupService;
 import by.innowise.auth.service.TokenService;
 import by.innowise.auth.service.UserService;
@@ -40,14 +41,64 @@ public class AuthFacadeImpl implements AuthFacade {
     @Transactional
     @Override
     public void validate(TokenRequestDto tokenRequest) {
+        validateJwt(tokenRequest);
+        ParsedTokenDto parsedTokenDto = parseToken(tokenRequest);
+        validateTokenConsistency(tokenRequest, parsedTokenDto);
+    }
+
+    @Transactional
+    @Override
+    public TokenResponseDto refresh(TokenRequestDto tokenRequest) {
+        validateJwt(tokenRequest);
+        ParsedTokenDto parsedTokenDto = parseToken(tokenRequest);
+        checkIfRefreshToken(parsedTokenDto);
+        validateTokenConsistency(tokenRequest, parsedTokenDto);
+        return generateUpdatedTokens(tokenRequest, parsedTokenDto);
+    }
+
+    private void checkIfRefreshToken(ParsedTokenDto parsedTokenDto) {
+        if (isNotRefreshToken(parsedTokenDto)) {
+            throw new TokenValidationException(
+                    "Token type [%s] can't be refreshed, cause it's not a REFRESH token".formatted(
+                            parsedTokenDto.getTokenType().getType()), HttpStatus.CONFLICT);
+        }
+    }
+
+    private TokenResponseDto generateUpdatedTokens(TokenRequestDto tokenRequest, ParsedTokenDto parsedTokenDto) {
+        return userService.getActiveById(parsedTokenDto.getUserId())
+                          .map(u -> getRefreshedTokens(tokenRequest, u))
+                          .orElseThrow(() -> new IllegalStateException(
+                                  "User has been illegally removed during token refresh"));
+    }
+
+    private TokenResponseDto getRefreshedTokens(TokenRequestDto tokenRequest, AuthUser user) {
+        return tokenService.getRefreshTokenByTokenHash(convertTokenToHex(tokenRequest))
+                           .map(t -> clearAndGenerateNewTokens(user, t))
+                           .orElseGet(() -> tokenService.generate(user));
+    }
+
+    private TokenResponseDto clearAndGenerateNewTokens(AuthUser user, RefreshToken token) {
+        log.info("Refresh token found: {}", token);
+        tokenService.delete(token);
+        log.info("Refresh token was pre-deleted: {}", token.getId());
+        return tokenService.generate(user);
+    }
+
+    private void validateJwt(TokenRequestDto tokenRequest) {
         log.info("Validating if token is not expired or malformed: {}", tokenRequest.token());
         tokenService.validate(tokenRequest);
+    }
+
+    private ParsedTokenDto parseToken(TokenRequestDto tokenRequest) {
         ParsedTokenDto parsedTokenDto = tokenService.getParsedTokenClaims(tokenRequest);
         log.info("Retrieved parsed token dto from claims: {}", parsedTokenDto);
+        return parsedTokenDto;
+    }
+
+    private void validateTokenConsistency(TokenRequestDto tokenRequest, ParsedTokenDto parsedTokenDto) {
         userService.getActiveById(parsedTokenDto.getUserId())
                    .ifPresentOrElse(u -> validateClaimsOrClearRefreshTokenAndThrow(u, parsedTokenDto, tokenRequest),
                                     () -> clearRefreshTokenAndThrow(tokenRequest, parsedTokenDto));
-        log.info("Token validated successfully");
     }
 
     private void clearRefreshTokenAndThrow(TokenRequestDto tokenRequest, ParsedTokenDto parsedTokenDto) {
@@ -89,5 +140,9 @@ public class AuthFacadeImpl implements AuthFacade {
 
     private boolean isRefreshToken(ParsedTokenDto parsedTokenDto) {
         return parsedTokenDto.getTokenType() == TokenType.REFRESH;
+    }
+
+    private boolean isNotRefreshToken(ParsedTokenDto parsedTokenDto) {
+        return parsedTokenDto.getTokenType() != TokenType.REFRESH;
     }
 }

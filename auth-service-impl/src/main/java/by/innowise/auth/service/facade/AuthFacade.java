@@ -10,4 +10,5 @@ public interface AuthFacade {
 
     void validate(TokenRequestDto tokenRequest);
 
+    TokenResponseDto refresh(TokenRequestDto tokenRequest);
 }
