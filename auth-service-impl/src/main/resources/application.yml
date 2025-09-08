@@ -23,9 +23,6 @@ spring:
     change-log: 'classpath:/db/changelog/db.changelog-master.yml'
     default-schema: 'app'
 
-server:
-  port: '9000'
-
 application:
   security:
     enabled: 'true'
