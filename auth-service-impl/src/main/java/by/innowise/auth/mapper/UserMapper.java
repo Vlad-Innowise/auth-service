@@ -18,6 +18,7 @@ public interface UserMapper {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "version", ignore = true)
+    @Mapping(target = "status", ignore = true)
     @Mapping(target = "role", qualifiedByName = "convertToRole")
     AuthUser toEntity(UserCreateDto dto, @Context UserStatus status, @Context String hashedPassword);
 
