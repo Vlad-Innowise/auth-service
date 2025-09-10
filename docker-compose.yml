@@ -1,0 +1,36 @@
+services:
+
+  auth-service-impl:
+    build: ./auth-service-impl
+    env_file:
+      - '.env.docker'
+    environment:
+      SPRING_PROFILES_ACTIVE: "${APPLICATION_PROFILE}"
+      DB_URL: "jdbc:postgresql://auth-service-db:5432/${AUTH_SERVICE_DB_NAME}"
+      DB_USER: "${AUTH_SERVICE_DB_USER}"
+      DB_PASSWORD: "${AUTH_SERVICE_DB_PASSWORD}"
+      JAVA_TOOL_OPTIONS: '-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5000'
+    ports:
+      - '9000:8080'
+      - '5005:5000'
+    expose:
+      - '9000' # application api
+      - '5005' # debug
+    restart: 'always'
+    depends_on:
+      - 'auth-service-db'
+
+  auth-service-db:
+    image: 'postgres:17-alpine'
+    environment:
+      POSTGRES_USER: "${AUTH_SERVICE_DB_USER}"
+      POSTGRES_PASSWORD: "${AUTH_SERVICE_DB_PASSWORD}"
+      POSTGRES_DB: "${AUTH_SERVICE_DB_NAME}"
+    ports:
+      - '7777:5432'
+    volumes:
+      - 'pg-auth-service-vol:/var/lib/postgresql/data'
+    restart: 'always'
+
+volumes:
+  pg-auth-service-vol:
