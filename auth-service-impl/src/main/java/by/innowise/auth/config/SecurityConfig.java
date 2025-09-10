@@ -59,7 +59,6 @@ public class SecurityConfig {
                                                )
             )
             .addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class);
-        System.out.println("SecurityFilterChain whitelist: " + WHITELIST_PATHS);
 
         return http.build();
     }
