@@ -62,6 +62,13 @@ public class AuthFacadeImpl implements AuthFacade {
         return refreshTokenByUser(authenticated);
     }
 
+    @Transactional
+    @Override
+    public void delete(Long userId) {
+        tokenService.deleteForUser(userId);
+        userService.delete(userId);
+    }
+
     private ParsedTokenDto validateAndParse(TokenRequestDto tokenRequest) {
         validateJwt(tokenRequest);
         return parseToken(tokenRequest);

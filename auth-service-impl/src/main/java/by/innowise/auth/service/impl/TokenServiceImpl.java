@@ -101,13 +101,18 @@ public class TokenServiceImpl implements TokenService, RefreshTokenCleanupServic
 
     @Override
     public Optional<RefreshToken> getRefreshTokenByUserId(Long userId) {
-        log.info("Retrieving refresh token userId: {}", userId);
-        return tokenRepository.findTokenByAuthUserId(userId);
+        return getTokenByUserId(userId);
     }
 
-    private Optional<RefreshToken> findRefreshTokenByTokenHash(String hashedToken) {
-        log.info("Retrieving refresh token by token hash in HEX: {}", hashedToken);
-        return tokenRepository.findTokenByTokenHash(hashedToken);
+    @Transactional
+    @Override
+    public void deleteForUser(Long userId) {
+        log.info("Removing refresh token for user: {}", userId);
+        getTokenByUserId(userId).ifPresentOrElse(token -> {
+                                                     tokenRepository.delete(token);
+                                                     log.info("Refresh token for user: {} pre-deleted", userId);
+                                                 },
+                                                 () -> log.info("Not found refresh tokens for user: {}", userId));
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -121,6 +126,16 @@ public class TokenServiceImpl implements TokenService, RefreshTokenCleanupServic
                                      log.info("Refresh token was deleted successfully: {}", t.getId());
                                  },
                                  () -> log.info("No refresh token found for hash: {}", hashedToken));
+    }
+
+    private Optional<RefreshToken> getTokenByUserId(Long userId) {
+        log.info("Retrieving refresh token userId: {}", userId);
+        return tokenRepository.findTokenByAuthUserId(userId);
+    }
+
+    private Optional<RefreshToken> findRefreshTokenByTokenHash(String hashedToken) {
+        log.info("Retrieving refresh token by token hash in HEX: {}", hashedToken);
+        return tokenRepository.findTokenByTokenHash(hashedToken);
     }
 
     private String generateToken(AuthUser user, LocalDateTime now, TokenType type) {

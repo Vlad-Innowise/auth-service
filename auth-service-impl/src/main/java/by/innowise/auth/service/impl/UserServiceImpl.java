@@ -8,6 +8,7 @@ import by.innowise.auth.repository.UserRepository;
 import by.innowise.auth.repository.entity.AuthUser;
 import by.innowise.auth.repository.entity.UserStatus;
 import by.innowise.auth.service.UserService;
+import by.innowise.common.library.exception.UserNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -46,6 +47,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Optional<AuthUser> getActiveById(Long userId) {
+        return getOptionalActiveUserById(userId);
+    }
+
+    private Optional<AuthUser> getOptionalActiveUserById(Long userId) {
         log.info("Trying to retrieve active user by id: {}", userId);
         return userRepository.findByIdAndStatus(userId, UserStatus.ACTIVATED);
     }
@@ -60,5 +65,21 @@ public class UserServiceImpl implements UserService {
                              })
                              .orElseThrow(() -> new AuthenticationFailedException("Login or password is incorrect!",
                                                                                   HttpStatus.UNAUTHORIZED));
+    }
+
+    @Transactional
+    @Override
+    public void delete(Long userId) {
+        getOptionalActiveUserById(userId)
+                .ifPresentOrElse(
+                        user -> {
+                            log.info("Deleting the user: {}", userId);
+                            userRepository.delete(user);
+                            log.info("User: {} pre-deleted", userId);
+                        }
+                        , () -> {
+                            throw new UserNotFoundException(
+                                    "Not found the user with id: [%s]".formatted(userId), HttpStatus.NOT_FOUND);
+                        });
     }
 }

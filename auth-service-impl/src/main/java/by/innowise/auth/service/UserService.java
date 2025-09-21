@@ -15,4 +15,6 @@ public interface UserService {
     Optional<AuthUser> getActiveById(Long userId);
 
     AuthUser authenticate(AuthDetails authDetails);
+
+    void delete(Long userId);
 }

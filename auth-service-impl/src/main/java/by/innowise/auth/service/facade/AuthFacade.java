@@ -14,4 +14,6 @@ public interface AuthFacade {
     TokenResponseDto refresh(TokenRequestDto tokenRequest);
 
     TokenResponseDto login(AuthDetails authDetails);
+
+    void delete(Long userId);
 }
