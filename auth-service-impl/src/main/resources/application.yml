@@ -23,6 +23,21 @@ spring:
     change-log: 'classpath:/db/changelog/db.changelog-master.yml'
     default-schema: 'app'
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: 'health,info'
+  endpoint:
+    health:
+      probes:
+        enabled: 'true'
+  health:
+    livenessState:
+      enabled: 'true'
+    readinessState:
+      enabled: 'true'
+
 application:
   security:
     enabled: 'true'

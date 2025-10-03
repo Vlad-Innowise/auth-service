@@ -23,7 +23,8 @@ public class SecurityConfig {
 
     private static final List<String> WHITELIST_PATHS = List.of(
             "/auth/register", "/auth/login",
-            "/token", "/token/**");
+            "/token", "/token/**",
+            "/actuator/health", "/actuator/health/**");
 
     @Bean
     public PasswordEncoder passwordEncoder() {
