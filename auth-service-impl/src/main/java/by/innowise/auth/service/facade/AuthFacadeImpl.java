@@ -32,9 +32,9 @@ public class AuthFacadeImpl implements AuthFacade {
     @Transactional
     @Override
     public TokenResponseDto register(UserCreateDto userCreateDto) {
-        log.info("Invoking authService to create a new user from dto: {}", userCreateDto);
+        log.info("Invoking authService to create a new user with email: {}", userCreateDto.email());
         AuthUser user = userService.create(userCreateDto);
-        log.info("Invoking token service to generate a token for a user: {}", user);
+        log.info("Invoking token service to generate a token for a user: {}", user.getId());
         return tokenService.generate(user);
     }
 

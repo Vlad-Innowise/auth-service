@@ -26,7 +26,7 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<TokenResponseDto> register(@RequestBody @Valid UserCreateDto userCreateDto) {
-        log.info("Requested to create a user: {}", userCreateDto);
+        log.info("Requested to create a user: {}", userCreateDto.email());
         TokenResponseDto generatedTokens = authFacade.register(userCreateDto);
         log.info("User created and tokens are generated. Sending a token response to a client: {}", generatedTokens);
         return ResponseEntity.ok(generatedTokens);
