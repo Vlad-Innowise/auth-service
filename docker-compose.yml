@@ -1,0 +1,45 @@
+services:
+
+  auth-service:
+    build: ./auth-service-impl
+    image: "ghcr.io/${GITHUB_INNOWISE_USERNAME}/${AUTH_SERVICE_GH_REPO_NAME}/${AUTH_SERVICE_IMAGE_NAME}"
+    environment:
+      SPRING_PROFILES_ACTIVE: "${APPLICATION_PROFILE}"
+      DB_URL: "jdbc:postgresql://auth-service-db:5432/${AUTH_SERVICE_DB_NAME}"
+      DB_USER: "${DB_USER}"
+      DB_PASSWORD: "${DB_PASSWORD}"
+      GITHUB_INNOWISE_USERNAME: "${GITHUB_INNOWISE_USERNAME}"
+      GITHUB_INNOWISE_TOKEN: "${GITHUB_INNOWISE_TOKEN}"
+      AUTH_SERVICE_GH_REPO_NAME: "${AUTH_SERVICE_GH_REPO_NAME}"
+      AUTH_SERVICE_IMAGE_NAME: "${AUTH_SERVICE_IMAGE_NAME}"
+      TOKEN_SECRET: "${TOKEN_SECRET}"
+      JAVA_TOOL_OPTIONS: '-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005'
+    ports:
+      - '9000:8080'
+      - '5005:5005'
+    expose:
+      - '9000' # application api
+      - '5005' # debug
+    restart: 'always'
+    depends_on:
+      - 'auth-service-db'
+
+  auth-service-db:
+    image: 'postgres:17-alpine'
+    environment:
+      POSTGRES_USER: "${DB_USER}"
+      POSTGRES_PASSWORD: "$DB_PASSWORD}"
+      POSTGRES_DB: "${AUTH_SERVICE_DB_NAME}"
+    ports:
+      - '7777:5432'
+    volumes:
+      - 'pg-auth-service-vol:/var/lib/postgresql/data'
+    restart: 'always'
+
+volumes:
+  pg-auth-service-vol:
+
+networks:
+  default:
+    external: true
+    name: 'innowise-net'
