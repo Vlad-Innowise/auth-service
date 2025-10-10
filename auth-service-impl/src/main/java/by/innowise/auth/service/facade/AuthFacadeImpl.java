@@ -120,7 +120,7 @@ public class AuthFacadeImpl implements AuthFacade {
 
     private TokenResponseDto replaceRefreshToken(AuthUser user, RefreshToken token) {
         log.info("Refresh token found: {}", token);
-        tokenService.delete(token);
+        refreshTokenCleanupService.clearTokenIfStored(token.getTokenHash());
         log.info("Refresh token was pre-deleted: {}", token.getId());
         return tokenService.generate(user);
     }
